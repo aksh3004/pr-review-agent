@@ -73,7 +73,7 @@ def run(pr: PRContext) -> AgentResult:
     findings = [
         Finding(
             agent_name="code_quality",
-            severity=Severity(item.get("severity", "low")),
+            severity=Severity(item.get("severity", "low").lower()),
             file_path=item.get("file_path", "unknown"),
             line_number=item.get("line_number"),
             title=item.get("title", ""),
