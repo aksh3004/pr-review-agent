@@ -1,5 +1,6 @@
 # PR Review Agent
 
+## Introduction
 Given a PR, this multi-agent pipeline gives you automated feedback on code quality,
 security, test coverage, and documentation. Each agent works concurrently on a specific
 area, and results are combined into an executive summary presented via a human-in-the-loop
@@ -7,6 +8,7 @@ approval gate before anything is posted to GitHub. Built with GPT-4o, OpenTeleme
 observability, and designed to migrate cleanly to Microsoft Agent Framework.
 
 ## Architecture
+```
 GitHub PR
     │
     ▼
@@ -21,6 +23,7 @@ Synthesis + HITL Gate  ← human reviews and approves here
     │
     ▼
 GitHub Review Comments (inline, per finding)
+```
 
 ## Benchmark Results
 
@@ -38,7 +41,7 @@ Evaluated against 15 merged PRs from `psf/requests` with existing human review c
 ## Setup
 
 ```bash
-git clone https://github.com/yourusername/pr-review-agent
+git clone https://github.com/aksh3004/pr-review-agent
 cd pr-review-agent
 pip install -r requirements.txt
 cp .env.example .env
@@ -56,6 +59,6 @@ Results are saved to `results/benchmark_results.json`.
 
 ## Migration to Microsoft Agent Framework
 
-The `ThreadPoolExecutor` fan-out in `orchestrator.py` maps directly to Agent Framework
-Workflows, and the OpenTelemetry spans flow into Azure Monitor with no code changes —
-just swap `ConsoleSpanExporter` for the Azure Monitor exporter.
+The `ThreadPoolExecutor` fan-out in `orchestrator.py` maps directly to the Agent Framework Workflows.
+The OpenTelemetry spans flow into Azure Monitor with no code changes.
+Just swap `ConsoleSpanExporter` for the Azure Monitor exporter.
