@@ -6,6 +6,8 @@ import time
 
 
 def init_telemetry():
+    if not os.getenv("OTEL_ENABLED"):
+        return
     exporter = ConsoleSpanExporter()
     processor = BatchSpanProcessor(exporter)
     provider = TracerProvider()
