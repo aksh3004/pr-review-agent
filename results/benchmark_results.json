@@ -1,0 +1,8 @@
+{
+  "repo": "psf/requests",
+  "total_prs": 15,
+  "total_agent_findings": 61,
+  "total_human_comments": 57,
+  "total_overlap": 21,
+  "precision": 0.344
+}
