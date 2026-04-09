@@ -17,9 +17,13 @@ console = Console()
 
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o")
+
+# used to sort findings in the HITL table, 'critical' at the top and 'low' at the bottom
 SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 
 
+# wraps each agent call, so one failing agent doesn't break the whole pipeline
+# error gets stored on AgentResult and shown in the final summary
 def _run_agent_safely(agent_module, pr: PRContext) -> AgentResult:
     try:
         return agent_module.run(pr)
@@ -30,6 +34,7 @@ def _run_agent_safely(agent_module, pr: PRContext) -> AgentResult:
         )
 
 
+# provides a unified human-readable summary of all agent results to help the human decide whether to approve posting to GitHub
 def _synthesize_summary(pr: PRContext, results: list[AgentResult]) -> str:
     summaries = "\n".join(
         f"- {r.agent_name}: {r.summary or r.error or 'no output'}" for r in results
@@ -55,6 +60,8 @@ def _synthesize_summary(pr: PRContext, results: list[AgentResult]) -> str:
     return response.choices[0].message.content.strip()
 
 
+# simple HITL gate that prompts the user for approval before posting to GitHub
+# presents the executive summary and a structured table of findings from each agent
 def _hitl_gate(synthesis: SynthesisResult) -> bool:
     table = Table(show_header=True, box=box.ROUNDED)
     table.add_column("Severity", width=10)
@@ -99,6 +106,7 @@ def run(pr: PRContext, skip_hitl=False) -> SynthesisResult:
     results = []
     t_start = time.perf_counter()
 
+    # concurrently run all agents to speed up the pipeline, with the slowest agent execution time posted as the latency in the final summary
     with ThreadPoolExecutor(max_workers=4) as executor:
         futures = {
             executor.submit(_run_agent_safely, mod, pr): name for mod, name in agents
@@ -120,6 +128,7 @@ def run(pr: PRContext, skip_hitl=False) -> SynthesisResult:
         latency=total_ms,
     )
 
+    # skip_hitl set to true for benchmarking purposes without waiting for user input
     if not skip_hitl:
         approved = _hitl_gate(synthesis)
         synthesis.approved = approved

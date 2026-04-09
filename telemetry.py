@@ -5,6 +5,8 @@ from contextlib import contextmanager
 import time
 
 
+# skipping telemetry entirely when not needed keeps local dev clean
+# set OTEL_ENABLED to true in env file when you want to traces output in the console
 def init_telemetry():
     if not os.getenv("OTEL_ENABLED"):
         return
@@ -15,10 +17,12 @@ def init_telemetry():
     trace.set_tracer_provider(provider)
 
 
+# wrapper function, so that agents cannot call opentelemetry directly
 def get_tracer(name: str) -> trace.Tracer:
     return trace.get_tracer(name)
 
 
+# wrap any agent's work in this function to get latency, token counts and finding counts recorded automatically as span attributes
 @contextmanager
 def agent_span(agent_name: str, pr_number: int):
     tracer = get_tracer(agent_name)

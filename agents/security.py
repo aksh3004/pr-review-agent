@@ -1,6 +1,5 @@
-import subprocess
-import tempfile
 import ast, json, os
+import subprocess, tempfile
 from openai import OpenAI
 from models import AgentResult, Finding, PRContext, Severity
 from telemetry import agent_span
@@ -9,9 +8,14 @@ from telemetry import agent_span
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o")
 
-SYSTEM_PROMPT = """Return ONLY a JSON array where each item has: severity, file_path, line_number, title, body, suggestion. No other text, no markdown, just the JSON array."""
+# bandit handles the review part and the model catches any patterns that bandit misses, like hardcoded values.
+SYSTEM_PROMPT = """You are a security reviewer. Return ONLY a JSON array.
+
+Each item has: severity, file_path, line_number, title, body, suggestion.
+No other text, no markdown, just the JSON array."""
 
 
+# grabs all the changed files in the diff
 def _extract_all_files(diff: str) -> dict[str, str]:
     files = {}
     current_file = None
@@ -26,6 +30,8 @@ def _extract_all_files(diff: str) -> dict[str, str]:
     return {path: "\n".join(lines) for path, lines in files.items() if lines}
 
 
+# bandit needs real files on disks.
+# Flatten paths with __ to avoid creating nested subdirectories
 def _run_bandit(py_files: dict[str, str]) -> str:
     try:
         with tempfile.TemporaryDirectory() as tmp:
@@ -79,6 +85,7 @@ def run(pr: PRContext) -> AgentResult:
 
     raw = response.choices[0].message.content
     try:
+        # deserializes instance into a Python object
         data = json.loads(raw)
         items = data if isinstance(data, list) else data.get("findings", [])
     except Exception:

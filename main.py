@@ -12,6 +12,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=str, required=True)
     parser.add_argument("--pr", type=int, required=True)
+    # optional argument dry-run lets you see full pipeline results without posting to GitHub (for testing)
     parser.add_argument("--dry-run", action="store_true", required=False)
     args = parser.parse_args()
 

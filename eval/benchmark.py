@@ -5,12 +5,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from dotenv import load_dotenv
 
 load_dotenv()
+import json, os, re, time
 from github import Github, Auth
 from tools.github_client import get_pr_context
-import json, os, re, time
 import orchestrator
 
 
+# only fetch Prs with at least 2 human review comments to measure overlap meaningfully
 def _fetch_benchmark_prs(repo_full_name: str, count: int) -> list[int]:
     g = Github(auth=Auth.Token(os.environ["GITHUB_TOKEN"]))
     repo = g.get_repo(repo_full_name)
@@ -24,6 +25,7 @@ def _fetch_benchmark_prs(repo_full_name: str, count: int) -> list[int]:
     return pr_numbers
 
 
+# a match is counted if the finding overlaps with a human comment in terms of file/line proximity or text similarity
 def _finding_overlaps_comment(
     finding, comment_body, comment_file, comment_line
 ) -> bool:
@@ -68,6 +70,7 @@ def run_benchmark(repo_full_name, pr_numbers) -> dict:
             total_agent_findings += len(orchestrator_result.all_findings)
             total_human_comments += len(list(human_comments))
 
+            # count each finding at most once even if it matches multiple comments
             for finding in orchestrator_result.all_findings:
                 for comment in human_comments:
                     if _finding_overlaps_comment(
@@ -82,6 +85,7 @@ def run_benchmark(repo_full_name, pr_numbers) -> dict:
         except Exception as e:
             print(f"Skipping PR # {pr_number}: {e}")
             continue
+        # set a delay to avoid hitting rate limits
         time.sleep(3)
 
     results = {

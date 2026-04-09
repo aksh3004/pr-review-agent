@@ -1,6 +1,4 @@
-import json
-import os
-import re
+import json, os, re
 from openai import OpenAI
 from models import AgentResult, Finding, PRContext, Severity
 from telemetry import agent_span
@@ -8,6 +6,8 @@ from telemetry import agent_span
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o")
 
+# we don't have the full repo checked out, so we need to keep counts of new test and public functions added
+# to help the model strengthen its reasoning
 SYSTEM_PROMPT = """You are a test coverage reviewer. Return ONLY a JSON array of findings, no other text.
 
 Each finding must have: severity, file_path, line_number, title, body, suggestion.
@@ -19,10 +19,12 @@ Flag these:
 - Test function with no assertion (CRITICAL)"""
 
 
+# count of new test functions added in the diff to flag if new functions were added without tests
 def _count_new_test_functions(diff: str) -> int:
     return len(re.findall(r"^\+\s*def test_", diff, re.MULTILINE))
 
 
+# count of public functions that don't start with "test_" or "_"
 def _count_new_public_functions(diff: str) -> int:
     all_new = re.findall(r"^\+\s*def ([a-zA-Z][a-zA-Z0-9_]*)\(", diff, re.MULTILINE)
     return sum(

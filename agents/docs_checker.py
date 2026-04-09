@@ -1,6 +1,4 @@
-import re
-import json
-import os
+import os, json, re
 from openai import OpenAI
 from models import AgentResult, Finding, PRContext, Severity
 from telemetry import agent_span
@@ -21,6 +19,7 @@ Flag these:
 - Inline TODO or FIXME in new code (LOW)"""
 
 
+# check if changelog file was modified in this diff
 def _changelog_updated(diff: str) -> bool:
     for line in diff.splitlines():
         if line.startswith("+++ b/"):
@@ -32,6 +31,7 @@ def _changelog_updated(diff: str) -> bool:
     return False
 
 
+# check if public functions were added or removed in the diff
 def _has_api_changes(diff: str) -> bool:
     all_public = re.findall(
         r"^\+\s*def ([a-zA-Z][a-zA-Z0-9_]*)\(", diff, re.MULTILINE
@@ -43,6 +43,7 @@ def run(pr: PRContext) -> AgentResult:
     api_changes = _has_api_changes(pr.pr_diff)
     changelog_updated = _changelog_updated(pr.pr_diff)
 
+    # provided context to the agent to help its reasoning
     hint = (
         f"API changes detected: {api_changes}. Changelog updated: {changelog_updated}."
     )
